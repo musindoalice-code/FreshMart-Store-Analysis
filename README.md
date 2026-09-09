@@ -1,3 +1,4 @@
+![FreshMart Basket Under Pressure — Key Findings](freshmart-findings-infographic.svg)
 # Why Is FreshMart's Basket Getting Smaller?
 
 A business analysis case study for FreshMart Supermarkets — a 42-store grocery chain across Gauteng, the Western Cape and KwaZulu-Natal. This project was completed as an individual assignment for the BrightLearn Data & AI Academy's Business Analysis programme.
