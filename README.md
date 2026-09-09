@@ -1,4 +1,4 @@
-![FreshMart Basket Under Pressure — Key Findings](image.svg)
+![FreshMart Basket Under Pressure — Key Findings](freshmart-findings-infographic.svg).
 
 # Why Is FreshMart's Basket Getting Smaller?
 
