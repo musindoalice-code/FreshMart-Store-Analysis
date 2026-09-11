@@ -69,7 +69,7 @@ More trips, each one smaller, revenue roughly flat-to-down — exactly the arith
 - **Primary:** average basket value (ZAR) and average items per trip, tracked monthly, split by store and by competitor-exposure status.
 - **Secondary:** basket-size band mix (% small vs large trips), loyalty penetration rate, stockout incidence and category coverage.
 - **Test design:** treat the 12 competitor-exposed stores as the treatment group; use a matched set of similar stores (same format/province, no nearby competitor) as control. Compare basket trends before vs after each intervention, the same before/after design used to isolate the competitor effect above.
-
+https://dbc-a371be58-89fc.cloud.databricks.com/dashboardsv3/01f1adc24c1919d8b1132c6d364508ce/published?o=7474644403956981
 ---
 
 ## 6. Data & method notes (for reproducibility)
