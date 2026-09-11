@@ -76,4 +76,31 @@ https://dbc-a371be58-89fc.cloud.databricks.com/dashboardsv3/01f1adc24c1919d8b113
 
 - **Source:** `FreshMart_Dataset.xlsx` — `Transactions` (64,330 rows), `Stores` (42 rows), `Stockouts` (119 rows), joined on `store_id`.
 - **Derived fields used:** `half` (H1/Jan–Jun vs H2/Jul–Dec), `basket_value_band`, stockout-day flag (store + date match against Stockouts table), competitor before/after flag (transaction date vs each store's `competitor_open_date`).
+Tools
+
+Excel — exploration and dashboard prototyping
+
+Power BI — interactive executive reporting
+
+SQL / Databricks — reproducible analysis
+
+Python / Pandas — cleaning and analysis
+
+GitHub — portfolio documentation
+
+Data Quality
+
+The dataset contains 64,330 transaction records, 42 stores and 119 stockout events. Blank customer IDs represent non-loyalty transactions in the case dataset. Findings are based on the supplied sample and should be validated against official operational/financial systems before being treated as actual company turnover or causal impact.
+
+Portfolio Structure
+
+FreshMart-Basket-Analytics/
+├── data/
+├── excel/
+├── powerbi/
+├── sql/
+├── python/
+├── images/
+└─
+- 
 - **Caveats:** single calendar year only (no true YoY comparison); this is a representative *sample* of transactions, not total turnover; all 119 stockout events fall under one category, which may reflect incomplete operational logging rather than a true category-specific issue.
