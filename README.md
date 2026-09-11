@@ -48,6 +48,14 @@ Value per item increased slightly, so pricing/value deterioration is not the pri
 
 Competition and stockouts are strong associations, not proof of causality. A treatment/control pilot is recommended.
 
+| Hypothesis  | Result           |
+| ----------- | ---------------- |
+| Fewer items | 🟢 Supported     |
+| Competition | 🟢 Strong signal |
+| Stockouts   | 🟢 Strong signal |
+| Pricing     | 🔴 Weak          |
+| Loyalty     | 🟡 Contributing  |
+The evidence points towards customer behaviour amplified by competitive and availability pressures.
 ---
 
 ## 3. Key insights
