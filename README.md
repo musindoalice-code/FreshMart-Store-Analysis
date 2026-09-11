@@ -1,59 +1,79 @@
 ![FreshMart Basket Under Pressure — Key Findings](image.svg/freshmart-findings-infographic.svg)
 
-# Why Is FreshMart's Basket Getting Smaller?
+# FreshMart Basket Decline — Analysis 
 
-A business analysis case study for FreshMart Supermarkets — a 42-store grocery chain across Gauteng, the Western Cape and KwaZulu-Natal. This project was completed as an individual assignment for the BrightLearn Data & AI Academy's Business Analysis programme.
+**One-line brief:** *"Footfall is up, but our sales aren't growing. It feels like people are buying less per visit."* — Head of Retail Operations
 
-## The problem I was asked to solve
+This repo/notebook investigates whether that's true, where it's happening, why, and what to do about it, using the 2025 transactions, stores and stockouts extract (64,330 transactions · 42 stores · 119 stockout events).
 
-More people are walking into FreshMart stores than a year ago, yet sales haven't grown to match. The Head of Retail Operations put it simply:
-
-> "Footfall is up, but our sales aren't growing. It feels like people are buying less per visit. Find out what is going on, and tell us what to do about it."
-
-That's a hunch, not a plan. My job was to turn it into a precise, evidence-backed answer: is basket size actually shrinking, where is it happening, why, and what should FreshMart do about it before the next budget cycle.
-
-## What I was working with
-
-FreshMart gave me a year of real-shaped (but sampled) operational data for 2025:
-
-- **~64,000 till transactions** — one row per basket, with the store, date, day of week, whether the shopper was a loyalty member, how many items were in the basket, the rand value of the basket, and how they paid.
-- **42 stores** — their province, format (Large / Medium /
-- **120 stockout events** — recorded moments where a product category ran out at a specific store, and for how long.
-
-The three tables link together through a shared store ID, so the real work was joining them and asking the right questions — not just averaging one column.
-
-## The headline finding
-
-Transactions increased by 6.79% in the second half of the year, but average basket value fell by 9.97%. The drop is driven almost entirely by a 10.56% decline in items per basket — not price, which actually held steady (value per item was up slightly, +0.66%). The decline was also progressive, not a one-off dip: average basket value fell nearly every month, from R299.82 in January to R248.56 in December — a 17.1% slide across the year. Loyalty members were somewhat protected (-7.04% vs -12.29% for non-members), but both groups declined, so loyalty status alone doesn't explain it.
-
-## How I approached it
-
-Rather than start with charts, I started by sharpening the question itself. A flat "average basket is down 3%" hides more than it reveals, so the investigation followed this path:
-
-1. **Define the problem properly** — decide what "basket size" actually means (rand value? item count? both — they can move in opposite directions), confirm the decline is real, and put a number on it.
-2. **Lay out competing explanations** — pricing, competition, product availability, changing shopping habits, store operations — and figure out what evidence in the data would prove or rule out each one.
-3. **Check and clean the data** — profile it for gaps, oddities and missing values (a blank customer ID just means a non-loyalty shopper, for instance) before trusting any number that comes out of it.
-4. **Dig into the segments** — split the numbers by month, store, format, province, loyalty status and day of week, because the chain-wide average is almost never where the real story lives.
-5. **Separate real behaviour change from a shifting mix** — if the *kind* of shopper or trip is changing, that can look like "people spending less" without anyone actually changing their habits.
-6. **Land on prioritised, costed recommendations** — with a way to measure whether they actually worked.
-
-## What's in this repository
-
-| File / Folder | What it is |
-|---|---|
-| `report/` | The full written business analysis report (problem framing, findings, recommendations) |
-| `presentation/` | The boardroom-style slide deck summarising the story in 10–15 slides |
-| `analysis/` | The working files behind the analysis — notebooks, SQL, or the annotated workbook, kept reproducible |
-| `data/` | The FreshMart data extract (transactions, stores, stockouts) used for this investigation |
-
-## Tools used
-
-`[list what you actually used here — e.g. Python (pandas, matplotlib), SQL, Power BI, Excel]`
-
-## A note on the data
-
-This is a representative sample of FreshMart's transactions, not their full turnover — it's meant to be used for comparing patterns, not for quoting an exact company-wide sales figure. It also isn't perfectly clean, on purpose: part of the assignment was noticing and documenting the messiness, not assuming it away.
+> **Note on time frame:** the dataset covers 2025 only, so "before vs after" below compares **H1 2025 (Jan–Jun) vs H2 2025 (Jul–Dec)**, not year-over-year. Directionally it lines up with the business's external "+6% YoY footfall" claim, but this is stated as an assumption, not confirmed against last year's data.
 
 ---
 
-*This project was completed for academic purposes as part of the BrightLearn Data & AI Academy Business Analysis programme. FreshMart Supermarkets is a fictional company created for this assignment.*
+## 1. Who this is for (stakeholders)
+
+| Stakeholder | What they care about |
+|---|---|
+| Head of Retail Operations | Is the basket-shrinkage story real, how big, and what to do first |
+| Merchandising Lead | Whether product mix / availability is driving smaller baskets |
+| Pricing Manager | Whether pricing or competitor pricing pressure is the cause |
+| Store Managers | Store- and operations-level issues (stockouts, local competition) they can act on directly |
+
+---
+
+## 2. Headline finding
+
+**The paradox is real and confirmed in the data — and it's sharply worse near new discount competitors.**
+
+| Metric | H1 2025 | H2 2025 | Change |
+|---|---|---|---|
+| Transaction volume | 31,109 | 33,221 | **+6.8%** |
+| Avg. basket value (ZAR) | R290.01 | R261.10 | **‑10.0%** |
+| Avg. items per basket | 14.2 | 12.7 | **‑10.6%** |
+| Total revenue (ZAR) | R9.02m | R8.67m | **‑3.9%** |
+
+More trips, each one smaller, revenue roughly flat-to-down — exactly the arithmetic the Head of Retail Operations suspected.
+
+---
+
+## 3. Key insights
+
+1. **Chain-wide, not isolated.** The basket decline shows up across all three provinces and all three store formats (roughly ‑9% to ‑11% everywhere) — this is not one region or one format's problem.
+
+2. **Competitor proximity is the single strongest driver found.** The 12 stores where a discount competitor opened nearby fell from an average basket of **R285.58 before** the opening to **R225.09 after** (‑21.2%). Stores with no nearby competitor fell only ‑7.2% (R289.65 → R268.80) over the same window. Competitive intrusion is roughly **3x** the baseline erosion rate.
+
+3. **Shoppers are trading big weekly shops for small top-up trips.** The share of baskets under R150 rose from 34.4% (H1) to 41.7% (H2), while baskets of R300–800 fell from 50.0% to 42.8%. This is a genuine mix-shift in shopping behaviour, not just a shrinking average.
+
+4. **Loyalty cushions the decline but doesn't stop it.** Loyalty members still spend more per basket (R283.58 vs R243.48 in H2) and declined more slowly (~‑7%) than non-members (~‑12%). 55% of all transactions have no loyalty ID attached — a large addressable non-member base.
+
+5. **Stockouts are a real but small-scale drag.** 119 recorded events (all logged under one category, "Household Cleaning" — itself a data-quality flag suggesting incomplete logging) affected only ~0.9% of transactions, but on those store-days average basket value was 15.7% lower (R232 vs R275). Too small in volume to explain the chain-wide trend, but a fixable operational leak.
+
+6. **Data quality note:** the 55.4% blank `customer_id` field is expected (non-loyalty shoppers, per the data dictionary), not a missing-data problem — worth stating explicitly so it isn't mistaken for one.
+
+---
+
+## 4. Recommendations & expected business impact
+
+| # | Recommendation | Why (evidence) | Expected impact | Owner |
+|---|---|---|---|---|
+| 1 | Competitive response package (price-match / targeted promos / loyalty offers) at the 12 exposed stores, prioritised by exposure date | Competitor-exposed stores decline 3x faster than baseline | Highest-leverage single fix — directly targets the steepest driver | Pricing Manager + affected Store Managers |
+| 2 | Cross-merchandising / multi-buy promos to convert small top-up trips into larger baskets, especially in Express format | Mix has shifted toward sub-R150 trips | Recovers basket value without needing more footfall | Merchandising Lead |
+| 3 | Loyalty sign-up push targeting the 55% non-loyalty transaction base | Non-members spend less and are declining faster | Larger, more resilient basket base over time | Head of Retail Ops / Marketing |
+| 4 | Fix stockout logging (expand beyond one category) and prioritise availability on high-velocity lines | Stockout days show a real, if small, basket hit | Removes an avoidable revenue leak | Store Operations |
+| 5 | Stand up a monthly monitoring dashboard (basket value, items/trip, basket-size mix, loyalty penetration, stockout incidence — split by competitor exposure) | Enables an ongoing, fair before/after read | Turns this from a one-off study into an early-warning system | BA / Analytics |
+
+---
+
+## 5. Success metrics & how to test
+
+- **Primary:** average basket value (ZAR) and average items per trip, tracked monthly, split by store and by competitor-exposure status.
+- **Secondary:** basket-size band mix (% small vs large trips), loyalty penetration rate, stockout incidence and category coverage.
+- **Test design:** treat the 12 competitor-exposed stores as the treatment group; use a matched set of similar stores (same format/province, no nearby competitor) as control. Compare basket trends before vs after each intervention, the same before/after design used to isolate the competitor effect above.
+
+---
+
+## 6. Data & method notes (for reproducibility)
+
+- **Source:** `FreshMart_Dataset.xlsx` — `Transactions` (64,330 rows), `Stores` (42 rows), `Stockouts` (119 rows), joined on `store_id`.
+- **Derived fields used:** `half` (H1/Jan–Jun vs H2/Jul–Dec), `basket_value_band`, stockout-day flag (store + date match against Stockouts table), competitor before/after flag (transaction date vs each store's `competitor_open_date`).
+- **Caveats:** single calendar year only (no true YoY comparison); this is a representative *sample* of transactions, not total turnover; all 119 stockout events fall under one category, which may reflect incomplete operational logging rather than a true category-specific issue.
