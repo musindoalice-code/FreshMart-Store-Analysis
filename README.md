@@ -32,7 +32,21 @@ This repo/notebook investigates whether that's true, where it's happening, why, 
 | Avg. items per basket | 14.2 | 12.7 | **‑10.6%** |
 | Total revenue (ZAR) | R9.02m | R8.67m | **‑3.9%** |
 
-More trips, each one smaller, revenue roughly flat-to-down — exactly the arithmetic the Head of Retail Operations suspected.
+Headline: Customers are still visiting, but they are purchasing fewer items per visit.More trips, each one smaller, revenue roughly flat-to-down — exactly the arithmetic the Head of Retail Operations suspected.
+
+## Root-Cause Signals
+
+41 of 42 stores had a lower H2 average basket than H1.
+
+Competitor-exposed stores fell from about R285.58 before competitor opening to R225.09 after (-21.18%).
+
+Stockout store-days averaged about R231.95 versus R276.31 on normal store-days (-16.05%).
+
+Loyalty members had larger baskets and a smaller decline than non-loyalty shoppers.
+
+Value per item increased slightly, so pricing/value deterioration is not the primary driver.
+
+Competition and stockouts are strong associations, not proof of causality. A treatment/control pilot is recommended.
 
 ---
 
@@ -88,19 +102,27 @@ Python / Pandas — cleaning and analysis
 
 GitHub — portfolio documentation
 
-Data Quality
+# Data Quality
 
 The dataset contains 64,330 transaction records, 42 stores and 119 stockout events. Blank customer IDs represent non-loyalty transactions in the case dataset. Findings are based on the supplied sample and should be validated against official operational/financial systems before being treated as actual company turnover or causal impact.
 
-Portfolio Structure
+# Portfolio Structure
 
 FreshMart-Basket-Analytics/
+
 ├── data/
+
 ├── excel/
+
 ├── powerbi/
+
 ├── sql/
+
 ├── python/
+
 ├── images/
-└─
+
+└─ README.md
+
 - 
 - **Caveats:** single calendar year only (no true YoY comparison); this is a representative *sample* of transactions, not total turnover; all 119 stockout events fall under one category, which may reflect incomplete operational logging rather than a true category-specific issue.
