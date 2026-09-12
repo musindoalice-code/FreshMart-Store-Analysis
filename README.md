@@ -1,12 +1,32 @@
 ![FreshMart Basket Under Pressure — Key Findings](image.svg/freshmart-findings-infographic.svg)
 
-# FreshMart Basket Decline — Analysis 
+
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
+![Pandas](https://img.shields.io/badge/Pandas-150458?style=flat&logo=pandas&logoColor=white)
+![SQL](https://img.shields.io/badge/SQL-4479A1?style=flat&logo=postgresql&logoColor=white)
+![Databricks](https://img.shields.io/badge/Databricks-FF3621?style=flat&logo=databricks&logoColor=white)
+![Power BI](https://img.shields.io/badge/Power_BI-F2C811?style=flat&logo=powerbi&logoColor=black)
+![Excel](https://img.shields.io/badge/Excel-217346?style=flat&logo=microsoftexcel&logoColor=white)
+![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat&logo=github&logoColor=white)
+
+# FreshMart Basket Decline — Analysis
 
 **One-line brief:** *"Footfall is up, but our sales aren't growing. It feels like people are buying less per visit."* — Head of Retail Operations
 
 This repo/notebook investigates whether that's true, where it's happening, why, and what to do about it, using the 2025 transactions, stores and stockouts extract (64,330 transactions · 42 stores · 119 stockout events).
 
 > **Note on time frame:** the dataset covers 2025 only, so "before vs after" below compares **H1 2025 (Jan–Jun) vs H2 2025 (Jul–Dec)**, not year-over-year. Directionally it lines up with the business's external "+6% YoY footfall" claim, but this is stated as an assumption, not confirmed against last year's data.
+
+---
+
+## Project Links
+
+| Deliverable | Link |
+|---|---|
+| 📊 Power BI dashboard | `[Paste your published Power BI report URL here]` |
+| 🖥️ Presentation deck | `[Paste your slide deck / PDF link here]` |
+| 🧮 SQL scripts | `[Paste your SQL repo folder or gist link here]` |
+| 🧱 Databricks dashboard | [View dashboard](https://dbc-a371be58-89fc.cloud.databricks.com/dashboardsv3/01f1adc24c1919d8b1132c6d364508ce/published?o=7474644403956981) |
 
 ---
 
@@ -32,30 +52,27 @@ This repo/notebook investigates whether that's true, where it's happening, why, 
 | Avg. items per basket | 14.2 | 12.7 | **‑10.6%** |
 | Total revenue (ZAR) | R9.02m | R8.67m | **‑3.9%** |
 
-Headline: Customers are still visiting, but they are purchasing fewer items per visit.More trips, each one smaller, revenue roughly flat-to-down — exactly the arithmetic the Head of Retail Operations suspected.
+Headline: customers are still visiting, but they are purchasing fewer items per visit. More trips, each one smaller, revenue roughly flat-to-down — exactly the arithmetic the Head of Retail Operations suspected.
 
-## Root-Cause Signals
+### Root-cause signals
 
-41 of 42 stores had a lower H2 average basket than H1.
+- 41 of 42 stores had a lower H2 average basket than H1.
+- Competitor-exposed stores fell from about R285.58 before competitor opening to R225.09 after (-21.18%).
+- Stockout store-days averaged about R231.95 versus R276.31 on normal store-days (-16.05%).
+- Loyalty members had larger baskets and a smaller decline than non-loyalty shoppers.
+- Value per item increased slightly, so pricing/value deterioration is not the primary driver.
+- Competition and stockouts are strong associations, not proof of causality. A treatment/control pilot is recommended.
 
-Competitor-exposed stores fell from about R285.58 before competitor opening to R225.09 after (-21.18%).
-
-Stockout store-days averaged about R231.95 versus R276.31 on normal store-days (-16.05%).
-
-Loyalty members had larger baskets and a smaller decline than non-loyalty shoppers.
-
-Value per item increased slightly, so pricing/value deterioration is not the primary driver.
-
-Competition and stockouts are strong associations, not proof of causality. A treatment/control pilot is recommended.
-
-| Hypothesis  | Result           |
-| ----------- | ---------------- |
-| Fewer items | 🟢 Supported     |
+| Hypothesis | Result |
+|---|---|
+| Fewer items | 🟢 Supported |
 | Competition | 🟢 Strong signal |
-| Stockouts   | 🟢 Strong signal |
-| Pricing     | 🔴 Weak          |
-| Loyalty     | 🟡 Contributing  |
+| Stockouts | 🟢 Strong signal |
+| Pricing | 🔴 Weak |
+| Loyalty | 🟡 Contributing |
+
 The evidence points towards customer behaviour amplified by competitive and availability pressures.
+
 ---
 
 ## 3. Key insights
@@ -91,46 +108,41 @@ The evidence points towards customer behaviour amplified by competitive and avai
 - **Primary:** average basket value (ZAR) and average items per trip, tracked monthly, split by store and by competitor-exposure status.
 - **Secondary:** basket-size band mix (% small vs large trips), loyalty penetration rate, stockout incidence and category coverage.
 - **Test design:** treat the 12 competitor-exposed stores as the treatment group; use a matched set of similar stores (same format/province, no nearby competitor) as control. Compare basket trends before vs after each intervention, the same before/after design used to isolate the competitor effect above.
-https://dbc-a371be58-89fc.cloud.databricks.com/dashboardsv3/01f1adc24c1919d8b1132c6d364508ce/published?o=7474644403956981
+
 ---
 
 ## 6. Data & method notes (for reproducibility)
 
 - **Source:** `FreshMart_Dataset.xlsx` — `Transactions` (64,330 rows), `Stores` (42 rows), `Stockouts` (119 rows), joined on `store_id`.
 - **Derived fields used:** `half` (H1/Jan–Jun vs H2/Jul–Dec), `basket_value_band`, stockout-day flag (store + date match against Stockouts table), competitor before/after flag (transaction date vs each store's `competitor_open_date`).
-Tools
 
-Excel — exploration and dashboard prototyping
+**Tools**
 
-Power BI — interactive executive reporting
+- Excel — exploration and dashboard prototyping
+- Power BI — interactive executive reporting
+- SQL / Databricks — reproducible analysis
+- Python / Pandas — cleaning and analysis
+- GitHub — portfolio documentation
 
-SQL / Databricks — reproducible analysis
+---
 
-Python / Pandas — cleaning and analysis
-
-GitHub — portfolio documentation
-
-# Data Quality
+## Data Quality
 
 The dataset contains 64,330 transaction records, 42 stores and 119 stockout events. Blank customer IDs represent non-loyalty transactions in the case dataset. Findings are based on the supplied sample and should be validated against official operational/financial systems before being treated as actual company turnover or causal impact.
 
-# Portfolio Structure
+---
 
+## Portfolio Structure
+
+```
 FreshMart-Basket-Analytics/
-
 ├── data/
-
 ├── excel/
-
 ├── powerbi/
-
 ├── sql/
-
 ├── python/
-
 ├── images/
+└── README.md
+```
 
-└─ README.md
-
-- 
-- **Caveats:** single calendar year only (no true YoY comparison); this is a representative *sample* of transactions, not total turnover; all 119 stockout events fall under one category, which may reflect incomplete operational logging rather than a true category-specific issue.
+**Caveats:** single calendar year only (no true YoY comparison); this is a representative *sample* of transactions, not total turnover; all 119 stockout events fall under one category, which may reflect incomplete operational logging rather than a true category-specific issue.
