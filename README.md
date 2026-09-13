@@ -1,5 +1,5 @@
-![FreshMart Basket Under Pressure — Key Findings](image.svg/freshmart-findings-infographic.svg)
 
+![FreshMart Basket Under Pressure — Key Findings](image.svg/freshmart-findings-infographic.svg)
 
 ![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
 ![Pandas](https://img.shields.io/badge/Pandas-150458?style=flat&logo=pandas&logoColor=white)
@@ -27,6 +27,7 @@ This repo/notebook investigates whether that's true, where it's happening, why, 
 | 🖥️ Presentation deck | `[Paste your slide deck / PDF link here]` |
 | 🧮 SQL scripts | `[Paste your SQL repo folder or gist link here]` |
 | 🧱 Databricks dashboard | [View dashboard](https://dbc-a371be58-89fc.cloud.databricks.com/dashboardsv3/01f1adc24c1919d8b1132c6d364508ce/published?o=7474644403956981) |
+| 📄 Full analytical workflow | [WORKFLOW.md](WORKFLOW.md) — step-by-step, from business case to recommendation |
 
 ---
 
@@ -115,6 +116,7 @@ The evidence points towards customer behaviour amplified by competitive and avai
 
 - **Source:** `FreshMart_Dataset.xlsx` — `Transactions` (64,330 rows), `Stores` (42 rows), `Stockouts` (119 rows), joined on `store_id`.
 - **Derived fields used:** `half` (H1/Jan–Jun vs H2/Jul–Dec), `basket_value_band`, stockout-day flag (store + date match against Stockouts table), competitor before/after flag (transaction date vs each store's `competitor_open_date`).
+- **Full step-by-step workflow:** see [WORKFLOW.md](WORKFLOW.md) for how each finding above was derived — business questions, data-quality checks, SQL logic, and the reasoning behind each hypothesis test.
 
 **Tools**
 
@@ -142,6 +144,7 @@ FreshMart-Basket-Analytics/
 ├── sql/
 ├── python/
 ├── images/
+├── WORKFLOW.md
 └── README.md
 ```
 
