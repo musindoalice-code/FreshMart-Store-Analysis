@@ -1,0 +1,1057 @@
+{
+  "datasets": [
+    {
+      "name": "freshmart_main",
+      "displayName": "Freshmart Main Data",
+      "queryLines": [
+        "SELECT\n",
+        "  t.transaction_id,\n",
+        "  t.store_id,\n",
+        "  CAST(t.transaction_date AS DATE) as transaction_date,\n",
+        "  t.day_of_week,\n",
+        "  t.customer_id,\n",
+        "  t.is_loyalty_member,\n",
+        "  t.num_items,\n",
+        "  t.basket_value_zar,\n",
+        "  t.payment_method,\n",
+        "  DATE_TRUNC('MONTH', CAST(t.transaction_date AS DATE)) as transaction_month,\n",
+        "  CASE\n",
+        "    WHEN MONTH(CAST(t.transaction_date AS DATE)) <= 6 THEN 'H1'\n",
+        "    ELSE 'H2'\n",
+        "  END as half_year,\n",
+        "  s.store_name,\n",
+        "  s.province,\n",
+        "  s.store_format,\n",
+        "  s.floor_area_sqm,\n",
+        "  s.opened_year,\n",
+        "  s.region_manager,\n",
+        "  s.has_nearby_competitor,\n",
+        "  CAST(s.competitor_open_date AS DATE) as competitor_open_date\n",
+        "FROM\n",
+        "  read_files(\n",
+        "    '/Volumes/workspace/default/freshmart_stores/1788896715052_freshmart_transactions.csv',\n",
+        "    format => 'csv',\n",
+        "    header => true\n",
+        "  ) t\n",
+        "    LEFT JOIN read_files(\n",
+        "      '/Volumes/workspace/default/freshmart_stores/1788896696465_freshmart_stores.csv',\n",
+        "      format => 'csv',\n",
+        "      header => true,\n",
+        "      delimiter => '\\t'\n",
+        "    ) s\n",
+        "      ON t.store_id = s.store_id"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "fc9d7eab",
+      "displayName": "Dashboard",
+      "layout": [
+        {
+          "widget": {
+            "name": "total_revenue",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "freshmart_main",
+                  "fields": [
+                    {
+                      "name": "sum(basket_value_zar)",
+                      "expression": "SUM(`basket_value_zar`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Revenue (ZAR)"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(basket_value_zar)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "total_transactions",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "freshmart_main",
+                  "fields": [
+                    {
+                      "name": "countdistinct(transaction_id)",
+                      "expression": "COUNT(DISTINCT `transaction_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Transactions"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(transaction_id)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "avg_basket",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "freshmart_main",
+                  "fields": [
+                    {
+                      "name": "avg(basket_value_zar)",
+                      "expression": "AVG(`basket_value_zar`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Average Basket Value (ZAR)"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(basket_value_zar)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "avg_items",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "freshmart_main",
+                  "fields": [
+                    {
+                      "name": "avg(num_items)",
+                      "expression": "AVG(`num_items`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Items per Transaction"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(num_items)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 0,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "revenue_trends",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "freshmart_main",
+                  "fields": [
+                    {
+                      "name": "monthly(transaction_month)",
+                      "expression": "DATE_TRUNC(\"MONTH\", `transaction_month`)"
+                    },
+                    {
+                      "name": "sum(basket_value_zar)",
+                      "expression": "SUM(`basket_value_zar`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Revenue Trends Over Time"
+              },
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "monthly(transaction_month)",
+                  "displayName": "Month",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(basket_value_zar)",
+                  "displayName": "basket_value_zar",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "transaction_trends",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "freshmart_main",
+                  "fields": [
+                    {
+                      "name": "monthly(transaction_month)",
+                      "expression": "DATE_TRUNC(\"MONTH\", `transaction_month`)"
+                    },
+                    {
+                      "name": "countdistinct(transaction_id)",
+                      "expression": "COUNT(DISTINCT `transaction_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Transaction Volume Trends"
+              },
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "monthly(transaction_month)",
+                  "displayName": "Month",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "countdistinct(transaction_id)",
+                  "displayName": "transaction_id",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 3,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "store_format_perf",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "freshmart_main",
+                  "fields": [
+                    {
+                      "name": "store_format",
+                      "expression": "`store_format`"
+                    },
+                    {
+                      "name": "avg(basket_value_zar)",
+                      "expression": "AVG(`basket_value_zar`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Store Format Performance"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "store_format",
+                  "displayName": "store_format",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "avg(basket_value_zar)",
+                  "displayName": "basket_value_zar",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "store_format",
+                  "displayName": "store_format",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "province_perf",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "freshmart_main",
+                  "fields": [
+                    {
+                      "name": "province",
+                      "expression": "`province`"
+                    },
+                    {
+                      "name": "sum(basket_value_zar)",
+                      "expression": "SUM(`basket_value_zar`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Performance by Province"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "province",
+                  "displayName": "province",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(basket_value_zar)",
+                  "displayName": "basket_value_zar",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "province",
+                  "displayName": "province",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 7,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "loyalty_revenue",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "freshmart_main",
+                  "fields": [
+                    {
+                      "name": "is_loyalty_member",
+                      "expression": "`is_loyalty_member`"
+                    },
+                    {
+                      "name": "sum(basket_value_zar)",
+                      "expression": "SUM(`basket_value_zar`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Loyalty Member vs Non-Member Revenue"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "is_loyalty_member",
+                  "displayName": "is_loyalty_member",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(basket_value_zar)",
+                  "displayName": "basket_value_zar",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "is_loyalty_member",
+                  "displayName": "is_loyalty_member",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "payment_methods",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "freshmart_main",
+                  "fields": [
+                    {
+                      "name": "countdistinct(transaction_id)",
+                      "expression": "COUNT(DISTINCT `transaction_id`)"
+                    },
+                    {
+                      "name": "payment_method",
+                      "expression": "`payment_method`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Payment Method Distribution"
+              },
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "countdistinct(transaction_id)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "transaction_id"
+                },
+                "color": {
+                  "fieldName": "payment_method",
+                  "displayName": "payment_method",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 11,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "loyalty_halfyear",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "freshmart_main",
+                  "fields": [
+                    {
+                      "name": "half_year",
+                      "expression": "`half_year`"
+                    },
+                    {
+                      "name": "avg(basket_value_zar)",
+                      "expression": "AVG(`basket_value_zar`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Loyalty Performance by Half-Year"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "half_year",
+                  "displayName": "half_year",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "avg(basket_value_zar)",
+                  "displayName": "basket_value_zar",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "half_year",
+                  "displayName": "half_year",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 15,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "store_format_volume",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "freshmart_main",
+                  "fields": [
+                    {
+                      "name": "store_format",
+                      "expression": "`store_format`"
+                    },
+                    {
+                      "name": "countdistinct(transaction_id)",
+                      "expression": "COUNT(DISTINCT `transaction_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Store Format Transaction Volume"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "store_format",
+                  "displayName": "store_format",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "countdistinct(transaction_id)",
+                  "displayName": "transaction_id",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "store_format",
+                  "displayName": "store_format",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 15,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "store_performance_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "freshmart_main",
+                  "fields": [
+                    {
+                      "name": "store_name",
+                      "expression": "`store_name`"
+                    },
+                    {
+                      "name": "province",
+                      "expression": "`province`"
+                    },
+                    {
+                      "name": "store_format",
+                      "expression": "`store_format`"
+                    },
+                    {
+                      "name": "sum(basket_value_zar)",
+                      "expression": "SUM(`basket_value_zar`)"
+                    },
+                    {
+                      "name": "countdistinct(transaction_id)",
+                      "expression": "COUNT(DISTINCT `transaction_id`)"
+                    },
+                    {
+                      "name": "avg(basket_value_zar)",
+                      "expression": "AVG(`basket_value_zar`)"
+                    },
+                    {
+                      "name": "has_nearby_competitor",
+                      "expression": "`has_nearby_competitor`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Store Performance Comparison"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "store_name"
+                  },
+                  {
+                    "fieldName": "province"
+                  },
+                  {
+                    "fieldName": "store_format"
+                  },
+                  {
+                    "fieldName": "sum(basket_value_zar)"
+                  },
+                  {
+                    "fieldName": "countdistinct(transaction_id)"
+                  },
+                  {
+                    "fieldName": "avg(basket_value_zar)"
+                  },
+                  {
+                    "fieldName": "has_nearby_competitor"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 19,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "competitor_impact",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "freshmart_main",
+                  "fields": [
+                    {
+                      "name": "store_format",
+                      "expression": "`store_format`"
+                    },
+                    {
+                      "name": "avg(basket_value_zar)",
+                      "expression": "AVG(`basket_value_zar`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Competitor Impact by Store Format"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "store_format",
+                  "displayName": "store_format",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "avg(basket_value_zar)",
+                  "displayName": "basket_value_zar",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "store_format",
+                  "displayName": "store_format",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 24,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "recommendations",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Strategic Recommendations for Freshmart Retail Performance\n",
+                "\n",
+                "### 📊 Key Performance Insights\n",
+                "\n",
+                "**Overall Performance (2025)**\n",
+                "* **Total Revenue**: R17.7M across 64,330 transactions\n",
+                "* **Average Basket**: R275.08 with 13.45 items per transaction\n",
+                "* **Geographic Leaders**: Gauteng dominates with R8.4M (48% of revenue), followed by Western Cape (R5.8M) and KwaZulu-Natal (R3.4M)\n",
+                "\n",
+                "### 🏪 Store Format Optimization\n",
+                "\n",
+                "**Current Performance by Format:**\n",
+                "* **Medium Format**: R276.69 avg basket (highest)\n",
+                "* **Large Format**: R274.34 avg basket, 31,441 transactions (highest volume)\n",
+                "* **Express Format**: R273.05 avg basket, 8,115 transactions\n",
+                "\n",
+                "**Recommendations:**\n",
+                "1. **Expand Medium format stores** - They deliver the highest average basket value while maintaining good transaction volume (24,774)\n",
+                "2. **Optimize Express stores** - While they have similar basket values, their lower transaction volume suggests potential for better site selection or marketing\n",
+                "3. **Leverage Large format strength** - These drive the highest transaction volume; focus on maintaining traffic while working to increase basket size through cross-selling\n",
+                "\n",
+                "### 👥 Loyalty Program Enhancement\n",
+                "\n",
+                "**Current State:**\n",
+                "* Non-members: R9.3M revenue (52.4%)\n",
+                "* Loyalty members: R8.4M revenue (47.6%)\n",
+                "\n",
+                "**Critical Finding:** Despite similar numbers, loyalty members likely have higher frequency/lifetime value. Investigate:\n",
+                "* Member vs non-member transaction frequency\n",
+                "* Average basket comparison (not just total revenue)\n",
+                "* Member retention and repeat purchase rates\n",
+                "\n",
+                "**Action Items:**\n",
+                "1. **Aggressive enrollment campaign** - The nearly 50/50 split suggests untapped potential\n",
+                "2. **Tiered rewards program** - Incentivize higher basket values for members\n",
+                "3. **Personalized promotions** - Use purchase data to drive targeted offers\n",
+                "\n",
+                "### 🏢 Competitive Response Strategy\n",
+                "\n",
+                "**Stores Facing Competition:**\n",
+                "* Multiple stores show \"Yes\" for nearby competitors (FreshMart Pretoria 3, Pretoria 6, etc.)\n",
+                "* Avg basket values for stores with competitors: R266-271 vs R276-292 for non-competing stores\n",
+                "\n",
+                "**Immediate Actions:**\n",
+                "1. **Price competitiveness audit** - Focus on stores with nearby competition\n",
+                "2. **Service differentiation** - Enhance in-store experience and convenience\n",
+                "3. **Localized promotions** - Target customers in competitive zones with special offers\n",
+                "4. **Basket-building initiatives** - Cross-merchandising and bundling to increase transaction value\n",
+                "\n",
+                "### 📈 Seasonal & Trend Opportunities\n",
+                "\n",
+                "**Key Observations:**\n",
+                "* **H1 performance** (R290 avg basket) outperforms H2 (R261 avg basket) by 11%\n",
+                "* Transaction volume peaks in November-December (5,829 and 5,674 respectively)\n",
+                "* February shows the lowest volume (4,840 transactions)\n",
+                "\n",
+                "**Recommendations:**\n",
+                "1. **H2 promotion strategy** - Aggressive campaigns in Q3-Q4 to close the gap with H1\n",
+                "2. **February revival campaign** - Address the post-holiday slump with targeted promotions\n",
+                "3. **Inventory planning** - Align stock levels with seasonal patterns to minimize stockouts during peak periods\n",
+                "\n",
+                "### 💳 Payment Method Insights\n",
+                "\n",
+                "**Distribution:**\n",
+                "* **Card**: 50.2% (32,306 transactions) - Dominant\n",
+                "* **Cash**: 30.7% (19,754 transactions)\n",
+                "* **Mobile**: 19.1% (12,270 transactions) - Growing segment\n",
+                "\n",
+                "**Actions:**\n",
+                "1. **Mobile payment promotion** - This is the future; incentivize adoption with cashback/discounts\n",
+                "2. **Contactless infrastructure** - Ensure all stores have modern payment terminals\n",
+                "3. **Digital wallet partnerships** - Integrate with major mobile money platforms\n",
+                "\n",
+                "### 🎯 Geographic Expansion Strategy\n",
+                "\n",
+                "**Current Distribution & Recommendations:**\n",
+                "1. **Gauteng (R8.4M)** - Continue to dominate; add 2-3 medium format stores in underserved areas\n",
+                "2. **Western Cape (R5.8M)** - Strong second market; identify opportunities for Large format stores\n",
+                "3. **KwaZulu-Natal (R3.4M)** - Growth opportunity; consider 1-2 Medium format stores to test market expansion\n",
+                "\n",
+                "### 📋 Action Priority Matrix\n",
+                "\n",
+                "**Immediate (Next 30 days):**\n",
+                "* Competitive pricing audit for stores with nearby competitors\n",
+                "* Launch February revival promotion\n",
+                "* Mobile payment adoption campaign\n",
+                "\n",
+                "**Short-term (90 days):**\n",
+                "* Loyalty program enhancement and enrollment drive\n",
+                "* H2 performance improvement initiatives\n",
+                "* Site selection for new Medium format stores\n",
+                "\n",
+                "**Long-term (6-12 months):**\n",
+                "* Geographic expansion into KwaZulu-Natal\n",
+                "* Large format optimization program\n",
+                "* Advanced inventory management system implementation\n",
+                "\n",
+                "---\n",
+                "*Dashboard last updated: September 11, 2026*"
+              ]
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 24,
+            "width": 6,
+            "height": 12
+          }
+        },
+        {
+          "widget": {
+            "name": "store_size_correlation",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "freshmart_main",
+                  "fields": [
+                    {
+                      "name": "store_format",
+                      "expression": "`store_format`"
+                    },
+                    {
+                      "name": "floor_area_sqm",
+                      "expression": "`floor_area_sqm`"
+                    },
+                    {
+                      "name": "avg(basket_value_zar)",
+                      "expression": "AVG(`basket_value_zar`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Store Size vs Performance"
+              },
+              "version": 3,
+              "widgetType": "scatter",
+              "encodings": {
+                "x": {
+                  "fieldName": "floor_area_sqm",
+                  "displayName": "Floor Area (sqm)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "avg(basket_value_zar)",
+                  "displayName": "Avg Basket Value",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "store_format",
+                  "displayName": "Store Format",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 28,
+            "width": 6,
+            "height": 4
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
