@@ -147,5 +147,84 @@ FreshMart-Basket-Analytics/
 ├── WORKFLOW.md
 └── README.md
 ```
+# FreshMart Supermarkets — Why Is Our Basket Getting Smaller?
+
+A SQL-based investigation into declining transaction value across FreshMart's 42-store chain
+
+## The brief
+
+> "Footfall is up, but our sales aren't growing. It feels like people are buying less per visit. Find out what is going on, and tell us what to do about it."
+> — Head of Retail Operations, FreshMart Supermarkets
+
+## Dataset
+
+Three linked tables for the 2025 calendar year, joined on `store_id`:
+
+| Table | Grain | Rows |
+|---|---|---|
+| `Transactions` | One row per basket | 64,330 |
+| `Stores` | One row per store | 42 |
+| `Stockouts` | One row per stockout event | 119 |
+
+## Problem framing
+
+"Basket size" was defined two ways — **average basket value (ZAR)** and **average items per basket** — since they can move independently and tell different stories. Both were tracked over calendar months and compared first half (Jan–Jun) vs second half (Jul–Dec) of 2025.
+
+**The decline is real and chain-wide.** Average basket value fell from R290.01 (H1) to R261.10 (H2) — a **10.0% decline** — while transaction volume rose (31,109 → 33,221), confirming the footfall-up/revenue-flat arithmetic in the brief. Average items per basket fell in step, from 14.22 to 12.72, while average price per item stayed essentially flat (~R20.30–R20.60 all year). This rules out a simple pricing/discounting explanation: **customers are putting fewer items in the basket, not paying less per item.**
+
+## Hypotheses tested
+
+| # | Hypothesis | Evidence checked | Verdict |
+|---|---|---|---|
+| 1 | Pricing — items falling because prices dropped | Avg price per item by month | **Rejected.** Price per item stable to slightly rising all year. |
+| 2 | Nearby competitor entry pulling spend away | Basket value before vs after each store's competitor-open date (±60 day window) | **Supported — strongly.** -18.2% around competitor openings, nearly double the chain-wide rate. |
+| 3 | Product availability (stockouts) reducing basket size | Basket value on stockout weekends vs normal weekends, at the 6 affected stores | **Supported, but narrow.** -18.5% impact, but limited to 6 of 42 stores and one category (Household Cleaning). |
+| 4 | Changing shopping behaviour — more frequent, smaller trips replacing big weekly shops | Share of Small/Medium/Large basket bands, H1 vs H2 | **Supported.** Small-basket share rose from 34.4% to 41.7%; Large-basket share fell from 31.7% to 26.7% — a genuine mix shift, not just smaller averages everywhere. |
+| 5 | Loyalty status masking or driving the decline | Basket value by loyalty status, H1 vs H2 | **Partially supported.** Both groups declined, but non-members fell faster (-12.3%) than loyalty members (-7.0%). |
+| 6 | Day-of-week / weekday vs weekend effect | Basket value by day type, H1 vs H2 | **Rejected.** Weekday (-10.3%) and weekend (-9.4%) declines are essentially the same. Red herring. |
+| 7 | Store format or province effect | Basket value by format and province, H1 vs H2 | **Weak effect.** Large stores (-11.2%) and Gauteng (-11.6%) dipped slightly more, consistent with Gauteng carrying 7 of the 12 competitor openings — not an independent driver on its own. |
+
+## Root cause
+
+The decline is not one single cause but **two layers**:
+
+1. **A broad, chain-wide behavioural shift** (~10% decline): customers are making more, smaller trips instead of fewer, larger ones. Items per basket are falling; price per item is not. This affects all 42 stores and both loyalty segments, non-members more than members.
+2. **Concentrated, high-impact operational events** riding on top of that trend: stores that gained a nearby discount competitor lost basket value at roughly **twice** the chain-wide rate (-18.2%) in the weeks around the competitor's opening, and the 6 stores suffering repeated weekend stockouts lost a similar amount (-18.5%) specifically on the affected weekend days.
+
+Gauteng and Large-format stores show the sharpest overall declines mainly because that's where competitor entries were concentrated (7 of 12 in Gauteng) — not because province or format is an independent cause.
+
+## Data quality notes
+
+- No missing values found in the key numeric fields (`basket_value_zar`, `num_items`) across 64,330 transaction rows.
+- `customer_id` is blank for non-loyalty shoppers by design (35,674 of 64,330 transactions) — treated as a category, not a data-quality gap.
+- No negative or zero basket values / item counts found.
+- All 12 competitor openings and all 119 stockout events fall in the second half of 2025 — this asymmetry is real in the source data, not a coverage gap (data covers the full year for all three tables).
+- All 119 stockout events share one category (Household Cleaning), one root cause noted ("Replenishment gap – weekend delivery missed"), and land on Saturday/Sunday only — a narrow, well-defined operational failure rather than a broad inventory problem.
+
+## Recommendations
+
+| Priority | Action | Expected impact | Owner | Risk |
+|---|---|---|---|---|
+| 1 | Fix the weekend replenishment gap for Household Cleaning at the 6 affected stores (adjust delivery scheduling to cover Sat/Sun) | Recovers ~18% basket value on affected weekend days at those 6 stores | Store Ops / Supply Chain | Low — isolated, well-understood cause |
+| 2 | Launch a targeted retention offer (loyalty sign-up push + basket-building promotions) at the 12 stores with a nearby competitor, timed around the opening | Cushions the ~18% competitor-driven drop; loyalty members already decline slower (-7% vs -12%) | Merchandising / Loyalty team | Medium — needs budget, competitor may respond |
+| 3 | Investigate the small-basket mix shift chain-wide: are these legitimate top-up trips (e.g. convenience missions) that need a different assortment/pricing strategy, or lost big-basket occasions to be won back | Addresses the largest-volume driver (all 42 stores) | Merchandising / Pricing | Medium — needs further qualitative research (e.g. customer survey) to confirm the "why" |
+| 4 | Extend competitor-tracking and stockout monitoring chain-wide, not just reactively | Enables earlier response to future competitor entries or supply gaps | Retail Operations | Low |
+
+## Success metrics & monitoring
+
+- **Primary metric:** average basket value (ZAR) and average items per basket, tracked monthly, chain-wide and by store.
+- **Fair test for interventions:** treatment vs control store comparison (e.g. stores getting the retention offer vs matched stores that don't), before/after the intervention date — the same before/after logic used to detect the competitor effect in this analysis.
+- **Monitoring dashboard should track:** monthly avg basket value & items/basket, small/medium/large basket-band mix (%), loyalty vs non-loyalty basket value, and a live flag for any store with a newly opened nearby competitor or an active stockout, so these events can be responded to as they happen rather than discovered a quarter later.
+
+## Limitations
+
+- This is a representative sample of transactions, not the full population — used to detect patterns and relative differences, not to report FreshMart's exact total turnover.
+- The competitor and stockout effects are observed from before/after comparisons rather than a designed experiment; other factors coinciding with those dates cannot be fully ruled out.
+- The mix-shift hypothesis (more small trips) is well evidenced in the data but the underlying *reason* customers are shifting trip type is not directly observable here and would benefit from qualitative follow-up (e.g. customer survey).
+
+## Repo contents
+
+- `FreshMart_Analysis.sql` — full SQL analysis script, organized by task
+- `README.md` — this summary
 
 **Caveats:** single calendar year only (no true YoY comparison); this is a representative *sample* of transactions, not total turnover; all 119 stockout events fall under one category, which may reflect incomplete operational logging rather than a true category-specific issue.
