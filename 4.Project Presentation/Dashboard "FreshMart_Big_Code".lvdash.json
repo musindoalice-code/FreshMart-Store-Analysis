@@ -1,0 +1,2072 @@
+{
+  "datasets": [
+    {
+      "name": "ccb214f5",
+      "displayName": "Retail Transaction Insights by Store and Region",
+      "queryLines": [
+        "USE CATALOG `workspace`;\n",
+        "USE SCHEMA `default`;\n",
+        "\n",
+        "SELECT t.transaction_id, t.store_id, t.basket_value_zar, s.province, s.store_format\n",
+        "FROM freshmart_analysis.default.fresh_mart_transactiondataset_1 t\n",
+        "JOIN freshmart_analysis.default.fresh_mart_storesdataset_1 s ON t.store_id = s.store_id\n",
+        "LIMIT 5;\n",
+        "\n",
+        "--checking Decline by store formats\n",
+        "SELECT s.store_format,\n",
+        "       CASE WHEN t.transaction_date < DATE '2025-07-01'\n",
+        "        THEN 'H1' \n",
+        "        ELSE 'H2' \n",
+        "        END AS half,\n",
+        "       COUNT(*) AS n, ROUND(AVG(t.basket_value_zar),2) AS avg_basket\n",
+        "FROM freshmart_analysis.default.fresh_mart_transactiondataset_1 t\n",
+        "JOIN freshmart_analysis.default.fresh_mart_storesdataset_1 s ON t.store_id = s.store_id\n",
+        "GROUP BY s.store_format, half;\n",
+        "\n",
+        "--Decline by Province\n",
+        "SELECT s.province,\n",
+        "       CASE WHEN t.transaction_date < DATE '2025-07-01' THEN 'H1' ELSE 'H2' END AS half,\n",
+        "       ROUND(AVG(t.basket_value_zar),2) AS avg_basket\n",
+        "FROM freshmart_analysis.default.fresh_mart_transactiondataset_1 t\n",
+        "JOIN freshmart_analysis.default.fresh_mart_storesdataset_1 s ON t.store_id = s.store_id\n",
+        "GROUP BY s.province, half;\n",
+        "\n",
+        "--competitor analysis\n",
+        "SELECT\n",
+        "    CASE WHEN t.transaction_date < s.competitor_open_date \n",
+        "    THEN 'Before' \n",
+        "    ELSE 'After' \n",
+        "    END AS period,\n",
+        "    COUNT(*) AS n, ROUND(AVG(t.basket_value_zar),2) AS avg_basket\n",
+        "FROM freshmart_analysis.default.fresh_mart_transactiondataset_1 t\n",
+        "JOIN freshmart_analysis.default.fresh_mart_storesdataset_1 s ON t.store_id = s.store_id\n",
+        "WHERE s.has_nearby_competitor = True\n",
+        "  AND t.transaction_date BETWEEN s.competitor_open_date - INTERVAL 60 DAY\n",
+        "                              AND s.competitor_open_date + INTERVAL 60 DAY\n",
+        "GROUP BY period;\n",
+        "\n",
+        "--stockouts\n",
+        "SELECT\n",
+        "    CASE WHEN so.stockout_id IS NULL THEN 'Normal weekend'\n",
+        "     ELSE 'Stockout weekend' \n",
+        "     END AS day_status,\n",
+        "    COUNT(*) AS n_transactions,\n",
+        "    ROUND(AVG(t.basket_value_zar),2) AS avg_basket\n",
+        "FROM freshmart_analysis.default.fresh_mart_transactiondataset_1 t\n",
+        "LEFT JOIN freshmart_analysis.default.fresh_mart_stockoutsdataset_1 so ON t.store_id = so.store_id AND t.transaction_date = so.date\n",
+        "WHERE t.store_id IN ('ST1002','ST1006','ST1039','ST1024','ST1041','ST1040')\n",
+        "  AND t.day_of_week IN ('Saturday','Sunday')\n",
+        "GROUP BY day_status;"
+      ]
+    },
+    {
+      "name": "competitor_impact",
+      "displayName": "Competitor Impact Analysis",
+      "queryLines": [
+        "SELECT\n",
+        "  CASE\n",
+        "    WHEN CAST(t.transaction_date AS DATE) < CAST(s.competitor_open_date AS DATE) THEN 'Before'\n",
+        "    ELSE 'After'\n",
+        "  END AS period,\n",
+        "  COUNT(*) AS n_transactions,\n",
+        "  ROUND(AVG(t.basket_value_zar), 2) AS avg_basket\n",
+        "FROM\n",
+        "  freshmart_analysis.default.fresh_mart_transactiondataset_1 t\n",
+        "    JOIN freshmart_analysis.default.fresh_mart_storesdataset_1 s\n",
+        "      ON t.store_id = s.store_id\n",
+        "WHERE\n",
+        "  s.has_nearby_competitor = 'Yes'\n",
+        "  AND CAST(t.transaction_date AS DATE) BETWEEN\n",
+        "    CAST(s.competitor_open_date AS DATE) - INTERVAL 60 DAY\n",
+        "  AND\n",
+        "    CAST(s.competitor_open_date AS DATE) + INTERVAL 60 DAY\n",
+        "GROUP BY\n",
+        "  period"
+      ]
+    },
+    {
+      "name": "stockout_impact",
+      "displayName": "Stockout Impact on Weekends",
+      "queryLines": [
+        "SELECT\n",
+        "  CASE\n",
+        "    WHEN so.stockout_id IS NULL THEN 'Normal weekend'\n",
+        "    ELSE 'Stockout weekend'\n",
+        "  END AS day_status,\n",
+        "  COUNT(*) AS n_transactions,\n",
+        "  ROUND(AVG(t.basket_value_zar), 2) AS avg_basket\n",
+        "FROM\n",
+        "  freshmart_analysis.default.fresh_mart_transactiondataset_1 t\n",
+        "    LEFT JOIN freshmart_analysis.default.fresh_mart_stockoutsdataset_1 so\n",
+        "      ON t.store_id = so.store_id\n",
+        "      AND CAST(t.transaction_date AS DATE) = CAST(so.date AS DATE)\n",
+        "WHERE\n",
+        "  t.store_id IN ('ST1002', 'ST1006', 'ST1039', 'ST1024', 'ST1041', 'ST1040')\n",
+        "  AND t.day_of_week IN ('Saturday', 'Sunday')\n",
+        "GROUP BY\n",
+        "  day_status"
+      ]
+    },
+    {
+      "name": "stores",
+      "displayName": "FreshMart Stores",
+      "config": {
+        "version": "1.1",
+        "source": "freshmart_analysis.default.fresh_mart_storesdataset_1",
+        "dimensions": [
+          {
+            "name": "store_id",
+            "expr": "store_id",
+            "displayName": "Store ID"
+          },
+          {
+            "name": "store_name",
+            "expr": "store_name",
+            "displayName": "Store Name"
+          },
+          {
+            "name": "province",
+            "expr": "province",
+            "displayName": "Province"
+          },
+          {
+            "name": "store_format",
+            "expr": "store_format",
+            "displayName": "Store Format"
+          },
+          {
+            "name": "region_manager",
+            "expr": "region_manager",
+            "displayName": "Region Manager"
+          },
+          {
+            "name": "has_nearby_competitor",
+            "expr": "has_nearby_competitor",
+            "displayName": "Has Nearby Competitor"
+          },
+          {
+            "name": "competitor_open_date",
+            "expr": "CAST(competitor_open_date AS DATE)",
+            "displayName": "Competitor Open Date",
+            "format": {
+              "type": "date",
+              "dateFormat": "year_month_day"
+            }
+          },
+          {
+            "name": "opened_year",
+            "expr": "opened_year",
+            "displayName": "Opened Year"
+          }
+        ],
+        "measures": [
+          {
+            "name": "store_count",
+            "expr": "COUNT(1)",
+            "displayName": "Store Count"
+          },
+          {
+            "name": "avg_floor_area",
+            "expr": "AVG(floor_area_sqm)",
+            "displayName": "Avg Floor Area (sqm)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stockouts",
+      "displayName": "FreshMart Stockouts",
+      "config": {
+        "version": "1.1",
+        "source": "freshmart_analysis.default.fresh_mart_stockoutsdataset_1",
+        "dimensions": [
+          {
+            "name": "stockout_id",
+            "expr": "stockout_id",
+            "displayName": "Stockout ID"
+          },
+          {
+            "name": "store_id",
+            "expr": "store_id",
+            "displayName": "Store ID"
+          },
+          {
+            "name": "date",
+            "expr": "CAST(date AS DATE)",
+            "displayName": "Date",
+            "format": {
+              "type": "date",
+              "dateFormat": "year_month_day"
+            }
+          },
+          {
+            "name": "category",
+            "expr": "category",
+            "displayName": "Category"
+          },
+          {
+            "name": "note",
+            "expr": "note",
+            "displayName": "Note"
+          }
+        ],
+        "measures": [
+          {
+            "name": "stockout_count",
+            "expr": "COUNT(1)",
+            "displayName": "Stockout Count"
+          },
+          {
+            "name": "avg_duration_hours",
+            "expr": "AVG(duration_hours)",
+            "displayName": "Avg Duration (Hours)"
+          },
+          {
+            "name": "total_duration_hours",
+            "expr": "SUM(duration_hours)",
+            "displayName": "Total Duration (Hours)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "transactions",
+      "displayName": "FreshMart Transactions",
+      "config": {
+        "version": "1.1",
+        "source": "freshmart_analysis.default.fresh_mart_transactiondataset_1",
+        "dimensions": [
+          {
+            "name": "store_id",
+            "expr": "store_id",
+            "displayName": "Store ID"
+          },
+          {
+            "name": "transaction_date",
+            "expr": "CAST(transaction_date AS DATE)",
+            "displayName": "Transaction Date",
+            "format": {
+              "type": "date",
+              "dateFormat": "year_month_day"
+            }
+          },
+          {
+            "name": "transaction_month",
+            "expr": "DATE_TRUNC('MONTH', CAST(transaction_date AS DATE))",
+            "displayName": "Transaction Month",
+            "format": {
+              "type": "date",
+              "dateFormat": "locale_short_month"
+            }
+          },
+          {
+            "name": "half",
+            "expr": "CASE WHEN CAST(transaction_date AS DATE) < DATE '2025-07-01' THEN 'H1 (Jan-Jun)' ELSE 'H2 (Jul-Dec)' END",
+            "displayName": "Half"
+          },
+          {
+            "name": "day_of_week",
+            "expr": "day_of_week",
+            "displayName": "Day of Week"
+          },
+          {
+            "name": "is_loyalty_member",
+            "expr": "is_loyalty_member",
+            "displayName": "Loyalty Member"
+          },
+          {
+            "name": "payment_method",
+            "expr": "payment_method",
+            "displayName": "Payment Method"
+          }
+        ],
+        "measures": [
+          {
+            "name": "total_basket_value",
+            "expr": "SUM(basket_value_zar)",
+            "displayName": "Total Basket Value (ZAR)",
+            "format": {
+              "type": "currency",
+              "currencyCode": "ZAR",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 2.0
+              }
+            }
+          },
+          {
+            "name": "avg_basket_value",
+            "expr": "AVG(basket_value_zar)",
+            "displayName": "Avg Basket Value (ZAR)",
+            "format": {
+              "type": "currency",
+              "currencyCode": "ZAR",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 2.0
+              }
+            }
+          },
+          {
+            "name": "transaction_count",
+            "expr": "COUNT(1)",
+            "displayName": "Transaction Count"
+          },
+          {
+            "name": "total_items",
+            "expr": "SUM(num_items)",
+            "displayName": "Total Items"
+          },
+          {
+            "name": "unique_customers",
+            "expr": "COUNT(DISTINCT customer_id)",
+            "displayName": "Unique Customers"
+          }
+        ]
+      }
+    }
+  ],
+  "relationshipGraphs": [
+    {
+      "sources": [
+        {
+          "name": "Untitled_dataset",
+          "datasetName": "ccb214f5"
+        },
+        {
+          "name": "Competitor_Impact_Analysis",
+          "datasetName": "competitor_impact"
+        },
+        {
+          "name": "Stockout_Impact_on_Weekends",
+          "datasetName": "stockout_impact"
+        },
+        {
+          "name": "FreshMart_Stores",
+          "datasetName": "stores"
+        },
+        {
+          "name": "FreshMart_Stockouts",
+          "datasetName": "stockouts"
+        },
+        {
+          "name": "FreshMart_Transactions",
+          "datasetName": "transactions"
+        }
+      ],
+      "relationships": [
+        {
+          "name": "relationship_0",
+          "from": "FreshMart_Transactions",
+          "to": "FreshMart_Stores",
+          "on": "`FreshMart_Transactions`.`store_id` = `FreshMart_Stores`.`store_id`",
+          "cardinality": "CARDINALITY_MANY_TO_ONE"
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "0583672a",
+      "displayName": "Executive Insights",
+      "layout": [
+        {
+          "widget": {
+            "name": "dashboard_title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## FreshMart Performance & Risk Dashboard\n",
+                "\n",
+                "Comprehensive analysis of basket value trends, competitor impact, stockout effects, and store performance across the FreshMart network."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "total_transactions",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "measure(FreshMart_Transactions__transaction_count)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`transaction_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Transactions"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(FreshMart_Transactions__transaction_count)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "avg_basket_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "measure(FreshMart_Transactions__avg_basket_value)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`avg_basket_value`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Basket Value (ZAR)"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(FreshMart_Transactions__avg_basket_value)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "total_stores",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "measure(FreshMart_Stores__store_count)",
+                      "expression": "MEASURE(`FreshMart_Stores`.`store_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Stores"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(FreshMart_Stores__store_count)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "stockout_events",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "measure(FreshMart_Stockouts__stockout_count)",
+                      "expression": "MEASURE(`FreshMart_Stockouts`.`stockout_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Stockout Events"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(FreshMart_Stockouts__stockout_count)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "monthly_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Transactions__transaction_month",
+                      "expression": "`FreshMart_Transactions`.`transaction_month`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__avg_basket_value)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`avg_basket_value`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Monthly Avg Basket Value Trend"
+              },
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Transactions__transaction_month",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Transactions__avg_basket_value)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "basket_by_format",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Transactions__half",
+                      "expression": "`FreshMart_Transactions`.`half`"
+                    },
+                    {
+                      "name": "FreshMart_Stores__store_format",
+                      "expression": "`FreshMart_Stores`.`store_format`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__avg_basket_value)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`avg_basket_value`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Basket by Store Format (H1 vs H2)"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Stores__store_format",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Transactions__avg_basket_value)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "FreshMart_Transactions__half",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "basket_by_province",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Transactions__half",
+                      "expression": "`FreshMart_Transactions`.`half`"
+                    },
+                    {
+                      "name": "FreshMart_Stores__province",
+                      "expression": "`FreshMart_Stores`.`province`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__avg_basket_value)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`avg_basket_value`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Basket by Province (H1 vs H2)"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Stores__province",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Transactions__avg_basket_value)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "FreshMart_Transactions__half",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 9,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "competitor_impact_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "Competitor_Impact_Analysis__period",
+                      "expression": "`Competitor_Impact_Analysis`.`period`"
+                    },
+                    {
+                      "name": "Competitor_Impact_Analysis__avg_basket",
+                      "expression": "`Competitor_Impact_Analysis`.`avg_basket`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Competitor Impact: Before vs After"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "Competitor_Impact_Analysis__period",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "Competitor_Impact_Analysis__avg_basket",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "stockout_impact_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "Stockout_Impact_on_Weekends__day_status",
+                      "expression": "`Stockout_Impact_on_Weekends`.`day_status`"
+                    },
+                    {
+                      "name": "Stockout_Impact_on_Weekends__avg_basket",
+                      "expression": "`Stockout_Impact_on_Weekends`.`avg_basket`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Weekend Stockout Impact"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "Stockout_Impact_on_Weekends__day_status",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "Stockout_Impact_on_Weekends__avg_basket",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 14,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "stockouts_by_category",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Stockouts__category",
+                      "expression": "`FreshMart_Stockouts`.`category`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Stockouts__stockout_count)",
+                      "expression": "MEASURE(`FreshMart_Stockouts`.`stockout_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Stockout Events by Category"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Stockouts__category",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Stockouts__stockout_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "loyalty_impact",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Transactions__is_loyalty_member",
+                      "expression": "`FreshMart_Transactions`.`is_loyalty_member`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__avg_basket_value)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`avg_basket_value`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Basket: Loyalty vs Non-Loyalty"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Transactions__is_loyalty_member",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Transactions__avg_basket_value)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 18,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "insights_text",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Key Insights & Recommendations\n",
+                "\n",
+                "### Headline Metrics\n",
+                "| Metric | Value |\n",
+                "| --- | --- |\n",
+                "| Total Transactions | 64,330 |\n",
+                "| Avg Basket Value (Overall) | ZAR 275.08 |\n",
+                "| Total Stores | 42 |\n",
+                "| Stockout Events | 119 |\n",
+                "\n",
+                "### 1. Systematic Monthly Decline (–17%)\n",
+                "Avg basket value fell from **ZAR 299.82 in January** to **ZAR 248.56 in December** — a steady month-over-month erosion with no single shock event. The steepest drops occur from July onward (H2).\n",
+                "- **Recommendation**: The gradual nature suggests structural rather than one-off causes. Prioritise a root-cause analysis of H2 operational changes (pricing, promotions, staffing, supplier terms).\n",
+                "\n",
+                "### 2. Competitor Impact Is Severe (–18.2%)\n",
+                "Stores with nearby competitors saw avg basket drop from **ZAR 275.35 before** to **ZAR 225.17 after** competitor opening (60-day window). This is the single largest revenue driver in the dataset.\n",
+                "- **Recommendation**: Deploy immediate competitive response at affected stores — loyalty incentives, price-matching on key categories, and exclusive product ranges. Monitor weekly for stabilisation.\n",
+                "\n",
+                "### 3. Stockout Weekends Cost ZAR 52.66 per Basket (–18.5%)\n",
+                "Weekend transactions at stockout-affected stores averaged **ZAR 232.24** vs **ZAR 284.90** on normal weekends. All 119 stockout events are concentrated in a **single category: Household Cleaning**.\n",
+                "- **Recommendation**: Address the Household Cleaning supply chain immediately — this is a single-category fix with network-wide impact. Implement automated weekend reorder triggers and safety stock for this category.\n",
+                "\n",
+                "### 4. Large Stores & Gauteng Hit Hardest\n",
+                "| Segment | H1 Avg Basket | H2 Avg Basket | Decline |\n",
+                "| --- | --- | --- | --- |\n",
+                "| Large format | ZAR 291.20 | ZAR 258.63 | –11.2% |\n",
+                "| Medium format | ZAR 290.21 | ZAR 264.03 | –9.0% |\n",
+                "| Express format | ZAR 284.87 | ZAR 261.77 | –8.1% |\n",
+                "| Gauteng | ZAR 291.68 | ZAR 257.96 | –11.6% |\n",
+                "| Western Cape | ZAR 287.83 | ZAR 262.32 | –8.9% |\n",
+                "| KwaZulu-Natal | ZAR 289.62 | ZAR 266.86 | –7.9% |\n",
+                "- **Recommendation**: Focus turnaround budget on Large-format stores in Gauteng first — they have the highest baseline revenue AND the steepest decline, maximising recovery potential.\n",
+                "\n",
+                "### 5. Loyalty Programme Delivers +13.2% Premium\n",
+                "Loyalty members average **ZAR 294.12** per basket vs **ZAR 259.79** for non-members — a ZAR 34.33 uplift per transaction.\n",
+                "- **Recommendation**: Expand loyalty enrolment, especially at competitor-affected stores. The loyalty premium (13.2%) partially offsets the competitor-driven decline (18.2%) — closing that gap requires deeper loyalty penetration.\n",
+                "\n",
+                "### Data Quality Findings\n",
+                "- `has_nearby_competitor` stores **string** values `'Yes'`/`'No'` — the original query `WHERE s.has_nearby_competitor = True` returns **zero rows**. Use `= 'Yes'` instead.\n",
+                "- `transaction_date` and `competitor_open_date` are **strings** requiring `CAST(... AS DATE)` for reliable temporal arithmetic.\n",
+                "- Stockout joins must match on **both** `store_id` AND `date` — a single-key join on `store_id` alone produces false cross-date correlations.\n",
+                "- `basket_value_zar` is `DECIMAL(35,15)` — excessive precision for a currency field; rounding at the display layer is sufficient.\n",
+                "- All 119 stockouts fall in one category (Household Cleaning) — if real, this is a critical supply-chain concentration risk; if synthetic, it limits category-level generalisation."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 22,
+            "width": 12,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "basket_by_dow",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Transactions__day_of_week",
+                      "expression": "`FreshMart_Transactions`.`day_of_week`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__avg_basket_value)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`avg_basket_value`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Basket by Day of Week"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Transactions__day_of_week",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Transactions__avg_basket_value)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 29,
+            "width": 4,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "monthly_transaction_count",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Transactions__transaction_month",
+                      "expression": "`FreshMart_Transactions`.`transaction_month`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__transaction_count)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`transaction_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Monthly Transaction Count"
+              },
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Transactions__transaction_month",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Transactions__transaction_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 29,
+            "width": 4,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "store_performance_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Stores__store_name",
+                      "expression": "`FreshMart_Stores`.`store_name`"
+                    },
+                    {
+                      "name": "FreshMart_Stores__province",
+                      "expression": "`FreshMart_Stores`.`province`"
+                    },
+                    {
+                      "name": "FreshMart_Stores__store_format",
+                      "expression": "`FreshMart_Stores`.`store_format`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__transaction_count)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`transaction_count`)"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__avg_basket_value)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`avg_basket_value`)"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__total_basket_value)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`total_basket_value`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Store Performance Ranking"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "FreshMart_Stores__store_name",
+                    "displayName": "Store Name"
+                  },
+                  {
+                    "fieldName": "FreshMart_Stores__province",
+                    "displayName": "Province"
+                  },
+                  {
+                    "fieldName": "FreshMart_Stores__store_format",
+                    "displayName": "Format"
+                  },
+                  {
+                    "fieldName": "measure(FreshMart_Transactions__transaction_count)",
+                    "displayName": "Transactions"
+                  },
+                  {
+                    "fieldName": "measure(FreshMart_Transactions__avg_basket_value)",
+                    "displayName": "Avg Basket (ZAR)"
+                  },
+                  {
+                    "fieldName": "measure(FreshMart_Transactions__total_basket_value)",
+                    "displayName": "Total Revenue (ZAR)"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 34,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "stockout_duration_by_store",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Stockouts__store_id",
+                      "expression": "`FreshMart_Stockouts`.`store_id`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Stockouts__total_duration_hours)",
+                      "expression": "MEASURE(`FreshMart_Stockouts`.`total_duration_hours`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Stockout Duration by Store"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Stockouts__store_id",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Stockouts__total_duration_hours)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 40,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "competitor_by_province",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Stores__has_nearby_competitor",
+                      "expression": "`FreshMart_Stores`.`has_nearby_competitor`"
+                    },
+                    {
+                      "name": "FreshMart_Stores__province",
+                      "expression": "`FreshMart_Stores`.`province`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Stores__store_count)",
+                      "expression": "MEASURE(`FreshMart_Stores`.`store_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Competitor Presence by Province"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Stores__province",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Stores__store_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "FreshMart_Stores__has_nearby_competitor",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 40,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "revenue_by_province",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Stores__province",
+                      "expression": "`FreshMart_Stores`.`province`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__total_basket_value)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`total_basket_value`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Revenue by Province"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Stores__province",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Transactions__total_basket_value)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 45,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "customers_by_format",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Stores__store_format",
+                      "expression": "`FreshMart_Stores`.`store_format`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__unique_customers)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`unique_customers`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Unique Customers by Store Format"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Stores__store_format",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Transactions__unique_customers)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 45,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "payment_method_pie",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "measure(FreshMart_Transactions__transaction_count)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`transaction_count`)"
+                    },
+                    {
+                      "name": "FreshMart_Transactions__payment_method",
+                      "expression": "`FreshMart_Transactions`.`payment_method`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Payment Method Distribution"
+              },
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(FreshMart_Transactions__transaction_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "FreshMart_Transactions__payment_method",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 29,
+            "width": 4,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "format_distribution_pie",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "measure(FreshMart_Stores__store_count)",
+                      "expression": "MEASURE(`FreshMart_Stores`.`store_count`)"
+                    },
+                    {
+                      "name": "FreshMart_Stores__store_format",
+                      "expression": "`FreshMart_Stores`.`store_format`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Store Format Distribution"
+              },
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(FreshMart_Stores__store_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "FreshMart_Stores__store_format",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 50,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "province_distribution_pie",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "measure(FreshMart_Stores__store_count)",
+                      "expression": "MEASURE(`FreshMart_Stores`.`store_count`)"
+                    },
+                    {
+                      "name": "FreshMart_Stores__province",
+                      "expression": "`FreshMart_Stores`.`province`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Province Distribution"
+              },
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(FreshMart_Stores__store_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "FreshMart_Stores__province",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 50,
+            "width": 6,
+            "height": 5
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "store_drilldown",
+      "displayName": "Store Drill-Down",
+      "layout": [
+        {
+          "widget": {
+            "name": "drilldown_title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Store-Level Performance Drill-Down\n",
+                "\n",
+                "Detailed per-store analysis: identify underperformers, track H1 vs H2 decline, and pinpoint competitor-affected and stockout-impacted locations."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "store_detail_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Stores__store_name",
+                      "expression": "`FreshMart_Stores`.`store_name`"
+                    },
+                    {
+                      "name": "FreshMart_Stores__province",
+                      "expression": "`FreshMart_Stores`.`province`"
+                    },
+                    {
+                      "name": "FreshMart_Stores__store_format",
+                      "expression": "`FreshMart_Stores`.`store_format`"
+                    },
+                    {
+                      "name": "FreshMart_Stores__has_nearby_competitor",
+                      "expression": "`FreshMart_Stores`.`has_nearby_competitor`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__transaction_count)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`transaction_count`)"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__avg_basket_value)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`avg_basket_value`)"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__total_basket_value)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`total_basket_value`)"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__unique_customers)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`unique_customers`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Store Performance Detail"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "FreshMart_Stores__store_name",
+                    "displayName": "Store Name"
+                  },
+                  {
+                    "fieldName": "FreshMart_Stores__province",
+                    "displayName": "Province"
+                  },
+                  {
+                    "fieldName": "FreshMart_Stores__store_format",
+                    "displayName": "Format"
+                  },
+                  {
+                    "fieldName": "FreshMart_Stores__has_nearby_competitor",
+                    "displayName": "Competitor"
+                  },
+                  {
+                    "fieldName": "measure(FreshMart_Transactions__transaction_count)",
+                    "displayName": "Transactions"
+                  },
+                  {
+                    "fieldName": "measure(FreshMart_Transactions__avg_basket_value)",
+                    "displayName": "Avg Basket (ZAR)"
+                  },
+                  {
+                    "fieldName": "measure(FreshMart_Transactions__total_basket_value)",
+                    "displayName": "Total Revenue (ZAR)"
+                  },
+                  {
+                    "fieldName": "measure(FreshMart_Transactions__unique_customers)",
+                    "displayName": "Unique Customers"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 12,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "avg_basket_by_store",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Stores__store_name",
+                      "expression": "`FreshMart_Stores`.`store_name`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__avg_basket_value)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`avg_basket_value`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Basket Value by Store"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Stores__store_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Transactions__avg_basket_value)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "h1_h2_by_store",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Transactions__half",
+                      "expression": "`FreshMart_Transactions`.`half`"
+                    },
+                    {
+                      "name": "FreshMart_Stores__store_name",
+                      "expression": "`FreshMart_Stores`.`store_name`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__avg_basket_value)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`avg_basket_value`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "H1 vs H2 Basket Decline by Store"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Stores__store_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Transactions__avg_basket_value)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "FreshMart_Transactions__half",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 15,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "revenue_by_store",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Stores__store_name",
+                      "expression": "`FreshMart_Stores`.`store_name`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__total_basket_value)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`total_basket_value`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Revenue by Store"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Stores__store_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Transactions__total_basket_value)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "transactions_by_store",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Stores__store_name",
+                      "expression": "`FreshMart_Stores`.`store_name`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__transaction_count)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`transaction_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Transaction Count by Store"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Stores__store_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Transactions__transaction_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 20,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "stockout_by_store",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Stockouts__store_id",
+                      "expression": "`FreshMart_Stockouts`.`store_id`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Stockouts__total_duration_hours)",
+                      "expression": "MEASURE(`FreshMart_Stockouts`.`total_duration_hours`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Stockout Duration by Store"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Stockouts__store_id",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Stockouts__total_duration_hours)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 25,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "competitor_impact_by_format",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "FreshMart_Stores__has_nearby_competitor",
+                      "expression": "`FreshMart_Stores`.`has_nearby_competitor`"
+                    },
+                    {
+                      "name": "FreshMart_Stores__store_format",
+                      "expression": "`FreshMart_Stores`.`store_format`"
+                    },
+                    {
+                      "name": "measure(FreshMart_Transactions__avg_basket_value)",
+                      "expression": "MEASURE(`FreshMart_Transactions`.`avg_basket_value`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Competitor Impact by Store Format"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "FreshMart_Stores__store_format",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(FreshMart_Transactions__avg_basket_value)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "FreshMart_Stores__has_nearby_competitor",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 25,
+            "width": 6,
+            "height": 5
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
